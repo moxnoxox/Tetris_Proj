@@ -240,7 +240,7 @@ char menu(){
 
 int CheckToMove(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
 	
-	for (int i=0;i<4;i++)
+	for (int i=0;i<4;i++){
 		for (int j=0;j<4;j++){
 			if(block[currentBlock][blockRotate][i][j]==1){
 				if(i+blockY >= HEIGHT || j+blockX<0 || j+blockX>=WIDTH){
@@ -251,6 +251,7 @@ int CheckToMove(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int bloc
 				}
 			}
 		}
+	}
 	return 1;
 }
 
@@ -285,21 +286,24 @@ void DrawChange(char f[HEIGHT][WIDTH], int command, int currentBlock, int blockR
 				printw(".");
 			}
 		}
-
+	DrawField();
     // 3. 새로운 블록 정보를 그린다.
     DrawBlock(blockY, blockX, currentBlock, blockRotate, ' ');
+	return;
 }
 
 void BlockDown(int sig){
+	timed_out=0;
 	if(CheckToMove(field,nextBlock[0],blockRotate,blockY+1,blockX)){
 		blockY++;
+		DrawChange(field,KEY_DOWN,nextBlock[0],blockRotate,blockY,blockX);
 	}
 	else{
 		if(blockY == -1){
 			gameOver=1;
 		}
 		AddBlockToField(field,nextBlock[0],blockRotate,blockY,blockX);
-		score+=DeleteLine(field);
+		DeleteLine(field);
 		nextBlock[0]=nextBlock[1];
 		nextBlock[1]=rand()%7;
 		blockRotate=0;
@@ -307,8 +311,9 @@ void BlockDown(int sig){
 		blockX=WIDTH/2-2;
 		DrawField();
 		DrawNextBlock(nextBlock);
+		PrintScore(score);
 	}
-	
+	return;
 }
 
 void AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
@@ -320,10 +325,10 @@ void AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int
 			}
 		}
 	}
+	return;
 }
 
 int DeleteLine(char f[HEIGHT][WIDTH]){
-	int score=0;
 	for (int i=0;i<HEIGHT;i++){
 		int full=1;
 		for (int j=0;j<WIDTH;j++){
