@@ -305,6 +305,7 @@ void BlockDown(int sig){
 		blockRotate=0;
 		blockY=-1;
 		blockX=WIDTH/2-2;
+		DrawField();
 		DrawNextBlock(nextBlock);
 	}
 	
