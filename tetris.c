@@ -282,6 +282,7 @@ void DrawChange(char f[HEIGHT][WIDTH], int command, int currentBlock, int blockR
 		for(int j=0;j<4;j++){
 			if(block[currentBlock][blockRotate][i][j]==1 && i+prevBlockY>=0){
 				move(i+prevBlockY+1,j+prevBlockX+1);
+				attron(A_REVERSE);
 				printw(".");
 			}
 		}
