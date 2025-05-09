@@ -243,7 +243,7 @@ int CheckToMove(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int bloc
 	for (int i=0;i<4;i++)
 		for (int j=0;j<4;j++){
 			if(block[currentBlock][blockRotate][i][j]==1){
-				if(i+blockY>=HEIGHT || j+blockX<0 || j+blockX>=WIDTH){
+				if(i+blockY >= HEIGHT-1 || j+blockX<0 || j+blockX>=WIDTH-1){
 					return 0;
 				}
 				if(f[i+blockY][j+blockX]==1) {
@@ -278,7 +278,15 @@ void DrawChange(char f[HEIGHT][WIDTH], int command, int currentBlock, int blockR
     }
 
     // 2. 이전 블록 정보를 지운다. DrawBlock 함수 참조
-    DrawBlock(prevBlockY, prevBlockX, currentBlock, prevBlockRotate, '.');
+	for(int i=0;i<4;i++)
+		for(int j=0;j<4;j++){
+			if(block[currentBlock][blockRotate][i][j]==1 && i+prevBlockY>=0){
+				move(i+prevBlockY+1,j+prevBlockX+1);
+				attron(A_REVERSE);
+				printw(".");
+				attroff(A_REVERSE);
+			}
+		}
 
     // 3. 새로운 블록 정보를 그린다.
     DrawBlock(blockY, blockX, currentBlock, blockRotate, ' ');
