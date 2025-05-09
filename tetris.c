@@ -1,7 +1,7 @@
 ﻿#include "tetris.h"
 
 static struct sigaction act, oact;
-static int timed_out = 0;
+int timed_out = 0;
 
 
 int main(){
