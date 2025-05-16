@@ -59,12 +59,11 @@ void DrawOutline(){
 	move(2,WIDTH+10);
 	printw("NEXT BLOCK");
 	DrawBox(3,WIDTH+10,4,8);
-	DrawBox(9,WIDTH+10,4,8);
 
 	/* score를 보여주는 공간의 태두리를 그린다.*/
-	move(14,WIDTH+10);
+	move(9,WIDTH+10);
 	printw("SCORE");
-	DrawBox(15,WIDTH+10,1,8);
+	DrawBox(10,WIDTH+10,1,8);
 }
 
 int GetCommand(){
@@ -140,27 +139,23 @@ void DrawField(){
 
 
 void PrintScore(int score){
-	move(15,WIDTH+11);
+	move(11,WIDTH+11);
 	printw("%8d",score);
 }
 
 void DrawNextBlock(int *nextBlock){
-		for (int idx = 0; idx < 2; idx++) {
-			int cb = nextBlock[idx];
-			int offsetY = 4 + idx * 6;
-			for (int i = 0; i < 4; i++) {
-				move(offsetY + i, WIDTH + 12);
-				for (int j = 0; j < 4; j++) {
-					if (block[cb][0][i][j] == 1) {
-						attron(A_REVERSE);
-						printw("  ");
-						attroff(A_REVERSE);
-					} else {
-						printw("  ");
-					}
-				}
+	int i, j;
+	for( i = 0; i < 4; i++ ){
+		move(4+i,WIDTH+13);
+		for( j = 0; j < 4; j++ ){
+			if( block[nextBlock[1]][0][i][j] == 1 ){
+				attron(A_REVERSE);
+				printw(" ");
+				attroff(A_REVERSE);
 			}
+			else printw(" ");
 		}
+	}
 }
 
 void DrawBlock(int y, int x, int blockID,int blockRotate,char tile){
@@ -310,8 +305,7 @@ void BlockDown(int sig){
 		AddBlockToField(field,nextBlock[0],blockRotate,blockY,blockX);
 		DeleteLine(field);
 		nextBlock[0]=nextBlock[1];
-		nextBlock[1]=nextBlock[2];
-		nextBlock[2]=rand()%7;
+		nextBlock[1]=rand()%7;
 		blockRotate=0;
 		blockY=-1;
 		blockX=WIDTH/2-2;
@@ -344,7 +338,7 @@ int DeleteLine(char f[HEIGHT][WIDTH]){
 			}
 		}
 		if (full==1){
-			score+=100;
+			score++;
 			for (int k=i;k>0;k--){
 				for (int j=0;j<WIDTH;j++){
 					f[k][j]=f[k-1][j];
@@ -361,20 +355,7 @@ int DeleteLine(char f[HEIGHT][WIDTH]){
 ///////////////////////////////////////////////////////////////////////////
 
 void DrawShadow(int y, int x, int blockID,int blockRotate){
-	int shadowY = y;
-	while (CheckToMove(field, blockID, blockRotate, shadowY + 1, x)) {
-		shadowY++;
-	}
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			if (block[blockID][blockRotate][i][j] == 1) {
-				move(i + shadowY + 1, j + x + 1);
-				attron(A_REVERSE);
-				printw("/");
-				attron(A_REVERSE);
-			}
-		}
-	}
+	// user code
 }
 
 void createRankList(){

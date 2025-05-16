@@ -18,7 +18,7 @@
 #define NUM_OF_ROTATE	4
 #define BLOCK_HEIGHT	4
 #define BLOCK_WIDTH	4
-#define BLOCK_NUM	3
+#define BLOCK_NUM	2
 
 // menu number
 #define MENU_PLAY '1'
