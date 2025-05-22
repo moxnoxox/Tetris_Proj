@@ -3,13 +3,13 @@
 static struct sigaction act, oact;
 int timed_out = 0;
 
-
 int main(){
 	int exit=0;
 
 	initscr();
 	noecho();
 	keypad(stdscr, TRUE);	
+	createRankList();
 
 	srand((unsigned int)time(NULL));
 
@@ -17,6 +17,7 @@ int main(){
 		clear();
 		switch(menu()){
 		case MENU_PLAY: play(); break;
+		case MENU_RANK: rank(); break;
 		case MENU_EXIT: exit=1; break;
 		default: break;
 		}
@@ -24,6 +25,7 @@ int main(){
 
 	endwin();
 	system("clear");
+	writeRankFile();
 	return 0;
 }
 
@@ -62,9 +64,9 @@ void DrawOutline(){
 	DrawBox(9,WIDTH+10,4,8);
 
 	/* score를 보여주는 공간의 태두리를 그린다.*/
-	move(14,WIDTH+10);
+	move(15,WIDTH+10);
 	printw("SCORE");
-	DrawBox(15,WIDTH+10,1,8);
+	DrawBox(16,WIDTH+10,1,8);
 }
 
 int GetCommand(){
@@ -140,16 +142,16 @@ void DrawField(){
 
 
 void PrintScore(int score){
-	move(15,WIDTH+11);
+	move(17,WIDTH+11);
 	printw("%8d",score);
 }
 
 void DrawNextBlock(int *nextBlock){
-		for (int idx = 0; idx < 2; idx++) {
+		for (int idx = 1; idx < 3; idx++) {
 			int cb = nextBlock[idx];
-			int offsetY = 4 + idx * 6;
+			int offsetY = 4 + (idx-1) * 6;
 			for (int i = 0; i < 4; i++) {
-				move(offsetY + i, WIDTH + 12);
+				move(offsetY + i, WIDTH + 11);
 				for (int j = 0; j < 4; j++) {
 					if (block[cb][0][i][j] == 1) {
 						attron(A_REVERSE);
@@ -230,7 +232,9 @@ void play(){
 	printw("GameOver!!");
 	refresh();
 	getch();
+	clear();
 	newRank(score);
+	clear();
 }
 
 char menu(){
@@ -293,7 +297,7 @@ void DrawChange(char f[HEIGHT][WIDTH], int command, int currentBlock, int blockR
 		}
 	DrawField();
     // 3. 새로운 블록 정보를 그린다.
-    DrawBlock(blockY, blockX, currentBlock, blockRotate, ' ');
+    DrawBlockWithFeatures(blockY, blockX, currentBlock, blockRotate);
 	return;
 }
 
@@ -307,7 +311,7 @@ void BlockDown(int sig){
 		if(blockY == -1){
 			gameOver=1;
 		}
-		AddBlockToField(field,nextBlock[0],blockRotate,blockY,blockX);
+		score += AddBlockToField(field,nextBlock[0],blockRotate,blockY,blockX);
 		DeleteLine(field);
 		nextBlock[0]=nextBlock[1];
 		nextBlock[1]=nextBlock[2];
@@ -322,19 +326,24 @@ void BlockDown(int sig){
 	return;
 }
 
-void AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
+int AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
 	// user code
+	int touched=0;//블럭이 떨어지고 필드와 맞닿은 면적을 체크하기 위한 변수
 	for (int i=0;i<4;i++){
 		for (int j=0;j<4;j++){
 			if(block[currentBlock][blockRotate][i][j]==1){
+				if(f[i+blockY+1][j+blockX]==1 || i+blockY==HEIGHT-1){
+					touched++;
+				}
 				f[i+blockY][j+blockX]=1;
 			}
 		}
 	}
-	return;
+	return touched * 10;
 }
 
 int DeleteLine(char f[HEIGHT][WIDTH]){
+	int dline=0;
 	for (int i=0;i<HEIGHT;i++){
 		int full=1;
 		for (int j=0;j<WIDTH;j++){
@@ -344,7 +353,7 @@ int DeleteLine(char f[HEIGHT][WIDTH]){
 			}
 		}
 		if (full==1){
-			score+=100;
+			dline++;
 			for (int k=i;k>0;k--){
 				for (int j=0;j<WIDTH;j++){
 					f[k][j]=f[k-1][j];
@@ -354,43 +363,215 @@ int DeleteLine(char f[HEIGHT][WIDTH]){
 				f[0][j]=0;
 			}
 		}
+		score += dline * dline * 100;
 	}
 	return score;
 }
 
 ///////////////////////////////////////////////////////////////////////////
 
-void DrawShadow(int y, int x, int blockID,int blockRotate){
+void DrawShadow(int y, int x, int currentBlock, int blockRotate){
 	int shadowY = y;
-	while (CheckToMove(field, blockID, blockRotate, shadowY + 1, x)) {
+	while (CheckToMove(field, currentBlock, blockRotate, shadowY + 1, x)) {
 		shadowY++;
 	}
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			if (block[blockID][blockRotate][i][j] == 1) {
-				move(i + shadowY + 1, j + x + 1);
-				attron(A_REVERSE);
-				printw("/");
-				attron(A_REVERSE);
-			}
-		}
-	}
+	DrawBlock(shadowY, x, currentBlock, blockRotate, '/');
+}
+
+void DrawBlockWithFeatures(int y, int x, int currentBlock, int blockRotate) {
+	DrawBlock(y, x, currentBlock, blockRotate, ' ');
+	DrawShadow(y, x, currentBlock, blockRotate);
 }
 
 void createRankList(){
-	// user code
+    FILE *fp = fopen("rank.txt", "r");
+    if (!fp) return;
+    int n;
+    fscanf(fp, "%d", &n);
+
+    RankNode *tail = NULL;
+    rankHead = NULL;
+    for (int i = 0; i < n; i++) {
+        RankNode *node = (RankNode*)malloc(sizeof(RankNode));
+        fscanf(fp, "%s %d", node->name, &node->score);
+        node->next = NULL;
+        if (rankHead == NULL) {
+            rankHead = node;
+            tail = node;
+        } else {
+            tail->next = node;
+            tail = node;
+        }
+    }
+    fclose(fp);
 }
 
 void rank(){
-	// user code
+	clear();
+	int x = 0, y = 0, ch;
+	move(0,0);
+	printw("1. list ranks from X to Y\n");
+	printw("2. list ranks by a specific name\n");
+	printw("3. delete a specific rank\n");
+	noecho();
+	ch = wgetch(stdscr);
+	if(ch == '1') {
+		printw("X: ");
+		echo();
+		scanw("%d", &x);
+		
+		refresh();
+		printw("Y: ");
+		echo();
+		scanw("%d", &y);
+		
+		refresh();
+		if (x == 0 && y == 0) {
+			RankNode *node = rankHead;
+			while(node != NULL) {
+				printw("%s %d\n", node->name, node->score);
+				node = node->next;
+			}
+			refresh();
+			getch();
+			clear();
+		}
+		if(y == 0) {
+			//x부터 끝까지 출력
+			RankNode *node = rankHead;
+			int i = 1;
+			while (node != NULL) {
+				if (i >= x) {
+					printw("%s %d\n", node->name, node->score);
+				}
+				node = node->next;
+				i++;
+			}
+			refresh();
+			getch();
+			clear();
+			return;
+		}
+		if (rankHead == NULL) {
+			printw("No rank found\n");
+			refresh();
+			getch();
+			clear();
+			return;
+		}
+
+		int i = 1;
+		RankNode *node = rankHead;
+		int found = 0;
+		while (node != NULL) {
+			if (i >= x && i <= y) {
+				move(i - x + 2, 0);
+				printw("%s %d\n", node->name, node->score);
+				found = 1;
+			}
+			if (i > y) break;
+			node = node->next;
+			i++;
+		}
+		if (!found) {
+			printw("search failure: no rank in the list\n");
+		}
+	}
+	if(ch == '2') {
+		char str[NAMELEN+1];
+		int check = 0;
+		printw("Input the name: ");
+		echo();
+		scanw("%s", str);
+		refresh();
+		RankNode *node = rankHead;
+		while(node != NULL) {
+			if(strcmp(node->name, str) == 0) {
+				printw("%s %d\n", node->name, node->score);
+				check = 1;
+			}
+			node = node->next;
+		}if(check == 0) {
+			printw("search failure: no name in the list\n");
+		}
+	}
+	if(ch == '3') {
+		int deleteRank;
+		printw("Input the rank: ");
+		echo();
+		scanw("%d", &deleteRank);
+		refresh();
+		RankNode *node = rankHead;
+		RankNode *prev = NULL;
+		int i = 1;
+		while (node != NULL) {
+			if (i == deleteRank) {
+				if (prev == NULL) {
+					rankHead = node->next;
+				} else {
+					prev->next = node->next;
+				}
+				free(node);
+				break;
+			}
+			prev = node;
+			node = node->next;
+			i++;
+		}
+		if (node == NULL) {
+			printw("search failure: the rank not in the list\n");
+		} else {
+			printw("Rank %d deleted\n", deleteRank);
+		}
+	}
+	refresh();
+	getch();
+	clear();
 }
 
 void writeRankFile(){
-	// user code
+    FILE *fp = fopen("rank.txt", "w");
+    if (!fp) return;
+
+    // 랭크 개수 세기
+    int count = 0;
+    for (RankNode *node = rankHead; node != NULL; node = node->next)
+        count++;
+    fprintf(fp, "%d\n", count);
+
+    for (RankNode *node = rankHead; node != NULL; node = node->next)
+        fprintf(fp, "%s %d\n", node->name, node->score);
+
+    fclose(fp);
 }
 
 void newRank(int score){
-	// user code
+    if(score <= 0) return;
+    char name[NAMELEN];
+    printw("Enter your name: ");
+	echo();
+    scanw("%s", name);
+
+    RankNode *newNode = (RankNode*)malloc(sizeof(RankNode));
+    strcpy(newNode->name, name);
+    newNode->score = score;
+    newNode->next = NULL;
+
+    // 리스트가 비었거나, 헤드보다 점수가 높으면 맨 앞에 삽입
+    if (rankHead == NULL || rankHead->score < score) {
+        newNode->next = rankHead;
+        rankHead = newNode;
+        return;
+    }
+
+    // 중간 또는 끝에 삽입
+    RankNode *cur = rankHead;
+    while (cur->next != NULL && cur->next->score >= score) {
+        cur = cur->next;
+    }
+    newNode->next = cur->next;
+    cur->next = newNode;
+	clear();
 }
 
 void DrawRecommend(int y, int x, int blockID,int blockRotate){
