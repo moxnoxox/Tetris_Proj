@@ -150,7 +150,7 @@ int blockRotate,blockY,blockX;	/* 현재 블럭의 회전, 블럭의 Y 좌표, �
 int score;			/* 점수가 저장*/
 int gameOver=0;			/* 게임이 종료되면 1로 setting된다.*/
 int timed_out;
-int recommendR,recommendY,recommedX; // 추천 블럭 배치 정보. 차례대로 회전, Y 좌표, X 좌표
+int recommendR,recommendY,recommendX; // 추천 블럭 배치 정보. 차례대로 회전, Y 좌표, X 좌표
 RecNode *recRoot;
 RankNode *rankHead = NULL; // 랭킹 리스트의 헤드 포인터
 
@@ -347,6 +347,8 @@ void writeRankFile();
  *	return	: none
  ***********************************************************/
 void newRank(int score);
+
+void DrawRecommend(int y, int x, int blockID,int blockRotate);
 
 /***********************************************************
  *	추천 블럭 배치를 구한다.

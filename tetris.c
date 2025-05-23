@@ -38,6 +38,7 @@ void InitTetris(){
 
 	nextBlock[0]=rand()%7;
 	nextBlock[1]=rand()%7;
+	nextBlock[2]=rand()%7;
 	blockRotate=0;
 	blockY=-1;
 	blockX=WIDTH/2-2;
@@ -47,6 +48,11 @@ void InitTetris(){
 
 	DrawOutline();
 	DrawField();
+	RecNode node;
+	node.lv=0;
+	node.score=score;
+	node.f=field;
+	recommend(&node);
 	DrawBlock(blockY,blockX,nextBlock[0],blockRotate,' ');
 	DrawNextBlock(nextBlock);
 	PrintScore(score);
@@ -312,10 +318,15 @@ void BlockDown(int sig){
 			gameOver=1;
 		}
 		score += AddBlockToField(field,nextBlock[0],blockRotate,blockY,blockX);
-		DeleteLine(field);
+		score += DeleteLine(field);
 		nextBlock[0]=nextBlock[1];
 		nextBlock[1]=nextBlock[2];
 		nextBlock[2]=rand()%7;
+		RecNode node;
+		node.lv=0;
+		node.score=score;
+		node.f=field;
+		recommend(&node);
 		blockRotate=0;
 		blockY=-1;
 		blockX=WIDTH/2-2;
@@ -363,9 +374,8 @@ int DeleteLine(char f[HEIGHT][WIDTH]){
 				f[0][j]=0;
 			}
 		}
-		score += dline * dline * 100;
 	}
-	return score;
+	return dline * dline * 100;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -381,6 +391,7 @@ void DrawShadow(int y, int x, int currentBlock, int blockRotate){
 void DrawBlockWithFeatures(int y, int x, int currentBlock, int blockRotate) {
 	DrawBlock(y, x, currentBlock, blockRotate, ' ');
 	DrawShadow(y, x, currentBlock, blockRotate);
+	DrawRecommend(recommendY, recommendX, currentBlock, recommendR);
 }
 
 void createRankList(){
@@ -575,15 +586,46 @@ void newRank(int score){
 }
 
 void DrawRecommend(int y, int x, int blockID,int blockRotate){
-	// user code
+	DrawBlock(y, x, blockID, blockRotate, 'R');
 }
 
-int recommend(RecNode *root){
-	int max=0; // 미리 보이는 블럭의 추천 배치까지 고려했을 때 얻을 수 있는 최대 점수
-
-	// user code
-
-	return max;
+int recommend(RecNode *root) {
+    int max = 0;
+    if (root->lv >= BLOCK_NUM) return root->score;
+    int blockID = nextBlock[root->lv];
+    
+    // for each rotation
+    for (int r = 0; r < NUM_OF_ROTATE; r++) {
+        // for each possible x position
+        for (int x = -BLOCK_WIDTH; x < WIDTH; x++) {
+            int y = -1;
+            while (CheckToMove(root->f, blockID, r, y + 1, x)) y++;
+            if (y < 0) continue;
+            // create child node
+            RecNode *child = malloc(sizeof(RecNode));
+            child->lv = root->lv + 1;
+            child->score = root->score;
+            child->f = malloc(sizeof(char[HEIGHT][WIDTH]));
+            memcpy(child->f, root->f, sizeof(char[HEIGHT][WIDTH]));
+            for (int i = 0; i < CHILDREN_MAX; i++) child->c[i] = NULL;
+            // apply block drop
+            int added = AddBlockToField(child->f, blockID, r, y, x);
+            int lines = DeleteLine(child->f);
+            child->score += added + lines;
+            // recurse
+            int s = recommend(child);
+            if (s > max) {
+                max = s;
+                if (root->lv == 0) {
+                    recommendR = r;
+                    recommendX = x;
+                    recommendY = y;
+                }
+            }
+            // we leak child and its f here; acceptable for short-lived tree
+        }
+    }
+    return max;
 }
 
 void recommendedPlay(){
